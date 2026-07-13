@@ -1,0 +1,152 @@
+{
+  "version": "2026-07",
+  "currency": "USD",
+  "source": "https://platform.claude.com/docs/en/about-claude/models/overview",
+  "notes": "Prices per 1K tokens. Cache write = 1.25x input. Cache read = 0.1x input.",
+  "models": {
+    "claude-fable-5": {
+      "displayName": "Claude Fable 5",
+      "modelId": "anthropic.claude-fable-5",
+      "aliases": [
+        "claude-fable-5",
+        "us.anthropic.claude-fable-5"
+      ],
+      "onDemand": {
+        "inputPer1k": 0.010,
+        "outputPer1k": 0.050,
+        "cacheWritePer1k": 0.01250,
+        "cacheReadPer1k": 0.00100
+      }
+    },
+    "claude-opus-4-8": {
+      "displayName": "Claude Opus 4.8",
+      "modelId": "anthropic.claude-opus-4-8",
+      "aliases": [
+        "claude-opus-4-8",
+        "us.anthropic.claude-opus-4-8",
+        "anthropic.claude-opus-4-8-v1"
+      ],
+      "onDemand": {
+        "inputPer1k": 0.005,
+        "outputPer1k": 0.025,
+        "cacheWritePer1k": 0.00625,
+        "cacheReadPer1k": 0.00050
+      }
+    },
+    "claude-sonnet-5": {
+      "displayName": "Claude Sonnet 5",
+      "modelId": "anthropic.claude-sonnet-5",
+      "aliases": [
+        "claude-sonnet-5",
+        "us.anthropic.claude-sonnet-5"
+      ],
+      "onDemand": {
+        "inputPer1k": 0.003,
+        "outputPer1k": 0.015,
+        "cacheWritePer1k": 0.00375,
+        "cacheReadPer1k": 0.00030
+      },
+      "introductoryPricing": {
+        "note": "Introductory pricing until 2026-08-31",
+        "inputPer1k": 0.002,
+        "outputPer1k": 0.010,
+        "cacheWritePer1k": 0.00250,
+        "cacheReadPer1k": 0.00020
+      }
+    },
+    "claude-opus-4-7": {
+      "displayName": "Claude Opus 4.7",
+      "modelId": "anthropic.claude-opus-4-7",
+      "aliases": [
+        "claude-opus-4-7",
+        "us.anthropic.claude-opus-4-7"
+      ],
+      "onDemand": {
+        "inputPer1k": 0.005,
+        "outputPer1k": 0.025,
+        "cacheWritePer1k": 0.00625,
+        "cacheReadPer1k": 0.00050
+      }
+    },
+    "claude-opus-4-6": {
+      "displayName": "Claude Opus 4.6",
+      "modelId": "anthropic.claude-opus-4-6-v1",
+      "aliases": [
+        "claude-opus-4-6",
+        "us.anthropic.claude-opus-4-6",
+        "anthropic.claude-opus-4-6"
+      ],
+      "onDemand": {
+        "inputPer1k": 0.005,
+        "outputPer1k": 0.025,
+        "cacheWritePer1k": 0.00625,
+        "cacheReadPer1k": 0.00050
+      }
+    },
+    "claude-opus-4-5": {
+      "displayName": "Claude Opus 4.5",
+      "modelId": "anthropic.claude-opus-4-5-20251101-v1:0",
+      "aliases": [
+        "claude-opus-4-5",
+        "claude-opus-4-5-20251101",
+        "us.anthropic.claude-opus-4-5"
+      ],
+      "onDemand": {
+        "inputPer1k": 0.005,
+        "outputPer1k": 0.025,
+        "cacheWritePer1k": 0.00625,
+        "cacheReadPer1k": 0.00050
+      }
+    },
+    "claude-sonnet-4-6": {
+      "displayName": "Claude Sonnet 4.6",
+      "modelId": "anthropic.claude-sonnet-4-6",
+      "aliases": [
+        "claude-sonnet-4-6",
+        "us.anthropic.claude-sonnet-4-6",
+        "us.anthropic.claude-sonnet-4-6[1m]",
+        "anthropic.claude-sonnet-4-6-v1"
+      ],
+      "onDemand": {
+        "inputPer1k": 0.003,
+        "outputPer1k": 0.015,
+        "cacheWritePer1k": 0.00375,
+        "cacheReadPer1k": 0.00030
+      }
+    },
+    "claude-sonnet-4-5": {
+      "displayName": "Claude Sonnet 4.5",
+      "modelId": "anthropic.claude-sonnet-4-5-20250929-v1:0",
+      "aliases": [
+        "claude-sonnet-4-5",
+        "claude-sonnet-4-5-20250929",
+        "claude-sonnet-4-5-20250514",
+        "us.anthropic.claude-sonnet-4-5",
+        "anthropic.claude-sonnet-4-5-20250514-v1:0"
+      ],
+      "onDemand": {
+        "inputPer1k": 0.003,
+        "outputPer1k": 0.015,
+        "cacheWritePer1k": 0.00375,
+        "cacheReadPer1k": 0.00030
+      }
+    },
+    "claude-haiku-4-5": {
+      "displayName": "Claude Haiku 4.5",
+      "modelId": "anthropic.claude-haiku-4-5-20251001-v1:0",
+      "aliases": [
+        "claude-haiku-4-5",
+        "claude-haiku-4-5-20251001",
+        "claude-haiku-4-5-20250714",
+        "us.anthropic.claude-haiku-4-5",
+        "anthropic.claude-haiku-4-5-20250714-v1:0"
+      ],
+      "onDemand": {
+        "inputPer1k": 0.001,
+        "outputPer1k": 0.005,
+        "cacheWritePer1k": 0.00125,
+        "cacheReadPer1k": 0.00010
+      }
+    }
+  }
+}
