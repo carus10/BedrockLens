@@ -44,6 +44,7 @@ function createWindow(): void {
       refreshTimer = null
     }
     destroyTray()
+    app.quit()
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
