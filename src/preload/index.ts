@@ -5,8 +5,9 @@ const api = {
     return ipcRenderer.invoke(channel, ...args)
   },
   on: (channel: string, listener: (...args: any[]) => void) => {
-    ipcRenderer.on(channel, (_, ...args) => listener(...args))
-    return () => ipcRenderer.removeListener(channel, listener)
+    const wrapper = (_: Electron.IpcRendererEvent, ...args: any[]) => listener(...args)
+    ipcRenderer.on(channel, wrapper)
+    return () => ipcRenderer.removeListener(channel, wrapper)
   },
   once: (channel: string, listener: (...args: any[]) => void) => {
     ipcRenderer.once(channel, (_, ...args) => listener(...args))

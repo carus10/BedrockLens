@@ -3,15 +3,19 @@ import type { AlertEvent, AlertConfig } from '../../shared/types'
 import { SettingsService } from './settings-service'
 import { DataService } from './data-service'
 
+interface AlertStore {
+  alerts: AlertEvent[]
+  notifiedThresholds: Record<string, number[]>
+}
+
 export class AlertService {
   private static instance: AlertService
-  private store: Store<{ alerts: AlertEvent[] }>
-  private notifiedThresholds: Map<string, Set<number>> = new Map()
+  private store: Store<AlertStore>
 
   private constructor() {
-    this.store = new Store<{ alerts: AlertEvent[] }>({
+    this.store = new Store<AlertStore>({
       name: 'bedrock-lens-alerts',
-      defaults: { alerts: [] }
+      defaults: { alerts: [], notifiedThresholds: {} }
     })
   }
 
@@ -37,11 +41,10 @@ export class AlertService {
     // Daily budget
     if (alerts.dailyBudget && today) {
       const pct = (today.total.estimatedCost / alerts.dailyBudget) * 100
+      const key = `daily-${today.startDate.slice(0, 10)}`
       for (const threshold of alerts.notifyAt) {
-        const key = `daily-${today.startDate.slice(0, 10)}`
         if (pct >= threshold && !this.hasNotified(key, threshold)) {
-          const event = this.createAlert('daily', threshold, today.total.estimatedCost, pct)
-          newAlerts.push(event)
+          newAlerts.push(this.createAlert('daily', threshold, today.total.estimatedCost, pct))
           this.markNotified(key, threshold)
         }
       }
@@ -51,12 +54,27 @@ export class AlertService {
     if (alerts.monthlyBudget && last30) {
       const monthStr = new Date().toISOString().slice(0, 7)
       const pct = (last30.total.estimatedCost / alerts.monthlyBudget) * 100
+      const key = `monthly-${monthStr}`
       for (const threshold of alerts.notifyAt) {
-        const key = `monthly-${monthStr}`
         if (pct >= threshold && !this.hasNotified(key, threshold)) {
-          const event = this.createAlert('monthly', threshold, last30.total.estimatedCost, pct)
-          newAlerts.push(event)
+          newAlerts.push(this.createAlert('monthly', threshold, last30.total.estimatedCost, pct))
           this.markNotified(key, threshold)
+        }
+      }
+    }
+
+    // Session budget — check the most recent active/completed session
+    if (alerts.sessionBudget) {
+      const sessions = await dataService.getSessions()
+      const recent = sessions[0]
+      if (recent) {
+        const pct = (recent.estimatedCost / alerts.sessionBudget) * 100
+        const key = `session-${recent.id}`
+        for (const threshold of alerts.notifyAt) {
+          if (pct >= threshold && !this.hasNotified(key, threshold)) {
+            newAlerts.push(this.createAlert('session', threshold, recent.estimatedCost, pct))
+            this.markNotified(key, threshold)
+          }
         }
       }
     }
@@ -99,13 +117,13 @@ export class AlertService {
   }
 
   private hasNotified(key: string, threshold: number): boolean {
-    return this.notifiedThresholds.get(key)?.has(threshold) ?? false
+    const thresholds = this.store.get('notifiedThresholds', {})
+    return thresholds[key]?.includes(threshold) ?? false
   }
 
   private markNotified(key: string, threshold: number): void {
-    if (!this.notifiedThresholds.has(key)) {
-      this.notifiedThresholds.set(key, new Set())
-    }
-    this.notifiedThresholds.get(key)!.add(threshold)
+    const thresholds = this.store.get('notifiedThresholds', {})
+    thresholds[key] = [...(thresholds[key] ?? []), threshold]
+    this.store.set('notifiedThresholds', thresholds)
   }
 }

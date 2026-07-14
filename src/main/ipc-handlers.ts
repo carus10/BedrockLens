@@ -72,23 +72,37 @@ export function setupIpcHandlers(): void {
     const s = settings.getSettings()
     if (!s.credits) return null
 
+    // Compute total Bedrock spend since credits startDate
+    const startDate = new Date(s.credits.startDate)
+    const daysSinceStart = Math.max(1, Math.ceil((Date.now() - startDate.getTime()) / 86400000))
+    const dailyData = await data.getDailyData(Math.min(daysSinceStart, 365))
+    const usedByBedrock = dailyData
+      .filter((d) => new Date(d.date) >= startDate)
+      .reduce((sum, d) => sum + d.estimatedCost, 0)
+
+    const estimatedRemaining = Math.max(0, s.credits.totalCredits - usedByBedrock)
+
+    // Burn rate: use last 7 days or however many days we have
     const periods = await data.getPeriods()
     const last7 = periods.find((p) => p.period === '7d')
-    const dailyBurnRate = data.getPricingEngine().estimateDailyBurnRate(
-      last7?.total.estimatedCost ?? 0
-    )
+    const last7Cost = last7?.total.estimatedCost ?? 0
+    const dailyBurnRate = data.getPricingEngine().estimateDailyBurnRate(last7Cost)
 
-    const used30Days = periods.find((p) => p.period === '30d')?.total.estimatedCost ?? 0
-    const remaining = Math.max(0, s.credits.totalCredits - s.credits.usedExternally - used30Days)
-    const deplDate = data.getPricingEngine().estimateDepletionDate(remaining, dailyBurnRate)
+    // Single consistent rounding — floor so "depletes in" never overshoots
+    const daysRemaining = dailyBurnRate > 0 ? Math.floor(estimatedRemaining / dailyBurnRate) : undefined
+    const deplDate = daysRemaining != null ? (() => {
+      const d = new Date()
+      d.setDate(d.getDate() + daysRemaining)
+      return d
+    })() : null
 
     return {
       totalCredits: s.credits.totalCredits,
-      usedByBedrock: used30Days,
-      estimatedRemaining: remaining,
+      usedByBedrock,
+      estimatedRemaining,
       dailyBurnRate,
       estimatedDepletionDate: deplDate?.toISOString(),
-      daysRemaining: deplDate ? Math.ceil((deplDate.getTime() - Date.now()) / 86400000) : undefined
+      daysRemaining
     }
   })
 

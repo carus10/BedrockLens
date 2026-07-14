@@ -367,12 +367,16 @@ function CreditsTab({ settings }: { settings: AppSettings }) {
   const queryClient = useQueryClient()
   const [credits, setCredits] = useState(settings.credits ?? { totalCredits: 0, usedExternally: 0, startDate: new Date().toISOString().slice(0, 10) })
   const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
 
   const save = async () => {
     setSaving(true)
     try {
       await ipc.invoke('settings:save', { credits })
-      queryClient.invalidateQueries({ queryKey: ['settings', 'credits'] })
+      await queryClient.invalidateQueries({ queryKey: ['settings'] })
+      await queryClient.invalidateQueries({ queryKey: ['credits'] })
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2500)
     } finally {
       setSaving(false)
     }
@@ -424,10 +428,23 @@ function CreditsTab({ settings }: { settings: AppSettings }) {
             className="input-field"
           />
         </Field>
-        <button onClick={save} disabled={saving} className="btn-primary flex items-center gap-1.5">
-          {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-          Save Credits
-        </button>
+        <div className="flex items-center gap-3">
+          <button onClick={save} disabled={saving || saved} className="btn-primary flex items-center gap-1.5">
+            {saving ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : saved ? (
+              <Check className="w-3.5 h-3.5" />
+            ) : (
+              <Check className="w-3.5 h-3.5" />
+            )}
+            {saving ? 'Saving…' : saved ? 'Saved!' : 'Save Credits'}
+          </button>
+          {saved && (
+            <span className="text-[11px] font-mono text-accent-green animate-pulse">
+              ✓ Dashboard updated
+            </span>
+          )}
+        </div>
       </div>
     </div>
   )

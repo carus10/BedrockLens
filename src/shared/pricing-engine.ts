@@ -26,6 +26,16 @@ export class PricingEngine {
     }
 
     // Fuzzy match — find by partial version string
+    // Try matching full version string first (e.g. opus-4-5) to avoid version collisions
+    for (const [key] of Object.entries(this.config.models)) {
+      const parts = key.split('-')
+      const versionStr = parts.slice(1).join('-')
+      if (versionStr && normalizedId.includes(versionStr)) {
+        return key
+      }
+    }
+
+    // Fallback to major-minor version matching (e.g. opus-4)
     for (const [key] of Object.entries(this.config.models)) {
       const parts = key.split('-')
       const major = parts[1]
@@ -107,11 +117,8 @@ export class PricingEngine {
     return last7DayCost / 7
   }
 
-  estimateDepletionDate(remainingCredits: number, dailyBurnRate: number): Date | null {
+  estimateDaysRemaining(remainingCredits: number, dailyBurnRate: number): number | null {
     if (dailyBurnRate <= 0) return null
-    const daysRemaining = remainingCredits / dailyBurnRate
-    const depletion = new Date()
-    depletion.setDate(depletion.getDate() + Math.floor(daysRemaining))
-    return depletion
+    return Math.floor(remainingCredits / dailyBurnRate)
   }
 }

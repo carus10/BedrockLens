@@ -63,9 +63,15 @@ export function useAutoRefresh() {
   const queryClient = useQueryClient()
 
   useEffect(() => {
-    const unsub = ipc.on('data:updated', () => {
+    const unsubData = ipc.on('data:updated', () => {
       queryClient.invalidateQueries()
     })
-    return unsub
+    const unsubAlerts = ipc.on('alerts:new', () => {
+      queryClient.invalidateQueries({ queryKey: ['alerts'] })
+    })
+    return () => {
+      unsubData()
+      unsubAlerts()
+    }
   }, [queryClient])
 }
