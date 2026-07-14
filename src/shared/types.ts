@@ -138,6 +138,7 @@ export interface CreditsConfig {
   totalCredits: number
   usedExternally: number
   startDate: string
+  trackingStartedAt?: string
   notes?: string
 }
 

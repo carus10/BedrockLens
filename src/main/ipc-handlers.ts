@@ -72,32 +72,37 @@ export function setupIpcHandlers(): void {
     const s = settings.getSettings()
     if (!s.credits) return null
 
-    // Compute total Bedrock spend since credits startDate using periods + daily data
-    const startDateStr = s.credits.startDate.slice(0, 10)
-    const startMs = new Date(startDateStr + 'T00:00:00').getTime()
-    const daysSinceStart = Math.max(1, Math.ceil((Date.now() - startMs) / 86400000))
+    // Use trackingStartedAt (set when user saves credits) to determine spend window
+    // Falls back to startDate for legacy configs without trackingStartedAt
+    const trackingStart = s.credits.trackingStartedAt ?? s.credits.startDate
+    const trackingMs = new Date(trackingStart).getTime()
+    const daysSinceTracking = Math.max(1, Math.ceil((Date.now() - trackingMs) / 86400000))
 
-    // Use periods for quick burn rate, and daily data for cumulative spend
     const periods = await data.getPeriods()
     const last30 = periods.find((p) => p.period === '30d')
     const last7 = periods.find((p) => p.period === '7d')
     const today = periods.find((p) => p.period === 'today')
 
     let usedByBedrock: number
-    if (daysSinceStart <= 31) {
-      // We have full daily data coverage — sum it
-      const dailyData = await data.getDailyData(daysSinceStart)
+
+    // If tracking started today (less than 24h ago), just use current today period
+    if (daysSinceTracking <= 1) {
+      const trackingDate = trackingStart.slice(0, 10)
+      const todayDate = new Date().toISOString().slice(0, 10)
+      if (trackingDate === todayDate) {
+        usedByBedrock = today?.total.estimatedCost ?? 0
+      } else {
+        const dailyData = await data.getDailyData(1)
+        usedByBedrock = dailyData.reduce((sum, d) => sum + d.estimatedCost, 0)
+      }
+    } else if (daysSinceTracking <= 31) {
+      const trackingDateStr = trackingStart.slice(0, 10)
+      const dailyData = await data.getDailyData(daysSinceTracking)
       usedByBedrock = dailyData
-        .filter((d) => d.date >= startDateStr)
+        .filter((d) => d.date >= trackingDateStr)
         .reduce((sum, d) => sum + d.estimatedCost, 0)
     } else {
-      // Beyond CloudWatch cache (31d), use 30d total as approximation
       usedByBedrock = last30?.total.estimatedCost ?? 0
-    }
-
-    // If usedByBedrock is still 0 but today shows cost, use today at minimum
-    if (usedByBedrock === 0 && today && today.total.estimatedCost > 0) {
-      usedByBedrock = today.total.estimatedCost
     }
 
     const estimatedRemaining = Math.max(0, s.credits.totalCredits - usedByBedrock)

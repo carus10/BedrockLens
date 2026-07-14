@@ -368,11 +368,15 @@ function CreditsTab({ settings }: { settings: AppSettings }) {
   const [credits, setCredits] = useState(settings.credits ?? { totalCredits: 0, usedExternally: 0, startDate: new Date().toISOString().slice(0, 10) })
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [resetMode, setResetMode] = useState<'fresh' | 'include-today'>('fresh')
 
   const save = async () => {
     setSaving(true)
     try {
-      await ipc.invoke('settings:save', { credits })
+      const trackingStartedAt = resetMode === 'fresh'
+        ? new Date().toISOString()
+        : new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00').toISOString()
+      await ipc.invoke('settings:save', { credits: { ...credits, trackingStartedAt } })
       await queryClient.invalidateQueries({ queryKey: ['settings'] })
       await queryClient.invalidateQueries({ queryKey: ['credits'] })
       setSaved(true)
@@ -428,6 +432,29 @@ function CreditsTab({ settings }: { settings: AppSettings }) {
             className="input-field"
           />
         </Field>
+        <div className="space-y-2">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-text-muted">Tracking Mode</p>
+          <label className="flex items-center gap-2 cursor-pointer text-[11px] font-mono text-text-secondary">
+            <input
+              type="radio"
+              name="resetMode"
+              checked={resetMode === 'fresh'}
+              onChange={() => setResetMode('fresh')}
+              className="accent-accent-green"
+            />
+            Start fresh (count from now)
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer text-[11px] font-mono text-text-secondary">
+            <input
+              type="radio"
+              name="resetMode"
+              checked={resetMode === 'include-today'}
+              onChange={() => setResetMode('include-today')}
+              className="accent-accent-green"
+            />
+            Include today's usage
+          </label>
+        </div>
         <div className="flex items-center gap-3">
           <button onClick={save} disabled={saving || saved} className="btn-primary flex items-center gap-1.5">
             {saving ? (

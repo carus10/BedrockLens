@@ -5,6 +5,13 @@ import { formatCost } from './utils'
 
 let tray: Tray | null = null
 
+export function destroyTray(): void {
+  if (tray) {
+    tray.destroy()
+    tray = null
+  }
+}
+
 function buildTrayMenu(): Electron.MenuItemConstructorOptions[] {
   const data = DataService.getInstance()
   const lastRefresh = data.getLastRefresh()

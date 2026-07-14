@@ -5,7 +5,7 @@ import { setupIpcHandlers } from './ipc-handlers'
 import { DataService } from './services/data-service'
 import { SettingsService } from './services/settings-service'
 import { AlertService } from './services/alert-service'
-import { createTray, updateTray } from './tray'
+import { createTray, updateTray, destroyTray } from './tray'
 
 let mainWindow: BrowserWindow | null = null
 let refreshTimer: NodeJS.Timeout | null = null
@@ -36,6 +36,14 @@ function createWindow(): void {
 
   mainWindow.on('ready-to-show', () => {
     mainWindow?.show()
+  })
+
+  mainWindow.on('close', () => {
+    if (refreshTimer) {
+      clearInterval(refreshTimer)
+      refreshTimer = null
+    }
+    destroyTray()
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
