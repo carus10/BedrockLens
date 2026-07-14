@@ -42,7 +42,7 @@ export default function Dashboard() {
   const { data: periods, isLoading } = usePeriods()
   const { data: credits } = useCredits()
   const { data: daily } = useDailyData(30)
-  const [summaryTab, setSummaryTab] = useState<SummaryTab>('30d')
+  const [summaryTab, setSummaryTab] = useState<SummaryTab>('today')
   const [customDate, setCustomDate] = useState<string>('')
 
   if (isLoading) return <LoadingSkeleton />
