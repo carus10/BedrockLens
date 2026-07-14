@@ -26,10 +26,9 @@ export class CostExplorerService {
     })
   }
 
-  async getDailyCosts(days: number): Promise<CostExplorerDay[]> {
+  async getDailyCosts(days: number, endDate: Date = new Date()): Promise<CostExplorerDay[]> {
     if (!this.client) throw new Error('CostExplorer client not initialized')
 
-    const endDate = new Date()
     const startDate = subDays(endDate, days)
 
     const resp = await this.client.send(

@@ -14,7 +14,8 @@
     "package:mac": "electron-vite build && electron-builder --mac",
     "package:linux": "electron-vite build && electron-builder --linux",
     "test": "vitest",
-    "lint": "eslint src --ext .ts,.tsx"
+    "lint": "eslint src --ext .ts,.tsx",
+    "verify:billing": "vite-node scripts/verify-billing.ts"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.600.0",

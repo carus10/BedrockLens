@@ -33,7 +33,7 @@ export class CloudWatchService {
       const resp = await this.client.send(
         new DescribeLogGroupsCommand({ logGroupNamePrefix: this.logGroupName })
       )
-      return (resp.logGroups?.length ?? 0) > 0
+      return !!resp.logGroups?.some((lg) => lg.logGroupName === this.logGroupName)
     } catch {
       return false
     }
@@ -80,9 +80,15 @@ export class CloudWatchService {
     while (Date.now() < deadline) {
       await sleep(QUERY_POLL_INTERVAL_MS)
 
-      const results = await this.client.send(
-        new GetQueryResultsCommand({ queryId })
-      )
+      let results
+      try {
+        results = await this.client.send(
+          new GetQueryResultsCommand({ queryId })
+        )
+      } catch (err) {
+        console.error('Transient error fetching query results, retrying...', err)
+        continue
+      }
 
       if (
         results.status === QueryStatus.Complete ||
@@ -105,9 +111,16 @@ export class CloudWatchService {
   }
 }
 
-function parseQueryResults(
+export function parseQueryResults(
   results: Array<Array<{ field?: string; value?: string }>>
 ): BedrockInvocationLog[] {
+  const getVal = (val: any): number => {
+    if (val === undefined || val === null) return 0
+    const parsed = parseInt(String(val), 10)
+    if (isNaN(parsed) || parsed < 0) return 0
+    return parsed
+  }
+
   return results.map((row) => {
     const record: Record<string, string> = {}
     for (const field of row) {
@@ -116,34 +129,73 @@ function parseQueryResults(
       }
     }
 
-    // Output tokens: try structured field first, then regex on raw @message
+    let jsonParsed: any = null
+    let jsonParseSuccess = false
+    if (record['@message']) {
+      try {
+        jsonParsed = JSON.parse(record['@message'])
+        jsonParseSuccess = true
+      } catch {
+        jsonParseSuccess = false
+      }
+    }
+
+    // Output tokens: try structured field first, then @message JSON, then regex
     let outputTokens = parseInt(record['outputTokens'] ?? '0', 10) || 0
     if (outputTokens === 0 && record['parsedOutputTokens']) {
       outputTokens = parseInt(record['parsedOutputTokens'], 10) || 0
     }
     if (outputTokens === 0 && record['@message']) {
-      const m = record['@message'].match(/"outputTokenCount"\s*:\s*(\d+)/)
-      if (m) outputTokens = parseInt(m[1], 10) || 0
+      if (jsonParseSuccess) {
+        const val = jsonParsed?.output?.outputTokenCount ?? jsonParsed?.outputTokenCount
+        if (val !== undefined && val !== null) {
+          outputTokens = getVal(val)
+        }
+      } else {
+        const m = record['@message'].match(/"outputTokenCount"\s*:\s*(\d+)/)
+        if (m) outputTokens = parseInt(m[1], 10) || 0
+      }
     }
 
     // Input tokens: also try @message fallback
     let inputTokens = parseInt(record['inputTokens'] ?? '0', 10) || 0
     if (inputTokens === 0 && record['@message']) {
-      const m = record['@message'].match(/"inputTokenCount"\s*:\s*(\d+)/)
-      if (m) inputTokens = parseInt(m[1], 10) || 0
+      if (jsonParseSuccess) {
+        const val = jsonParsed?.input?.inputTokenCount ?? jsonParsed?.inputTokenCount
+        if (val !== undefined && val !== null) {
+          inputTokens = getVal(val)
+        }
+      } else {
+        const m = record['@message'].match(/"inputTokenCount"\s*:\s*(\d+)/)
+        if (m) inputTokens = parseInt(m[1], 10) || 0
+      }
     }
 
     // Cache tokens: also try @message fallback
     let cacheReadTokens = parseInt(record['cacheReadTokens'] ?? '0', 10) || 0
     if (cacheReadTokens === 0 && record['@message']) {
-      const m = record['@message'].match(/"cacheReadInputTokenCount"\s*:\s*(\d+)/)
-      if (m) cacheReadTokens = parseInt(m[1], 10) || 0
+      if (jsonParseSuccess) {
+        const val = jsonParsed?.input?.cacheReadInputTokenCount ?? jsonParsed?.cacheReadInputTokenCount
+        if (val !== undefined && val !== null) {
+          cacheReadTokens = getVal(val)
+        }
+      } else {
+        const m = record['@message'].match(/"cacheReadInputTokenCount"\s*:\s*(\d+)/)
+        if (m) cacheReadTokens = parseInt(m[1], 10) || 0
+      }
     }
 
     let cacheWriteTokens = parseInt(record['cacheWriteTokens'] ?? '0', 10) || 0
     if (cacheWriteTokens === 0 && record['@message']) {
-      const m = record['@message'].match(/"cacheWriteInputTokenCount"\s*:\s*(\d+)/)
-      if (m) cacheWriteTokens = parseInt(m[1], 10) || 0
+      if (jsonParseSuccess) {
+        const val = jsonParsed?.input?.cacheWriteInputTokenCount ?? jsonParsed?.cacheWriteInputTokenCount
+        if (val !== undefined && val !== null) {
+          cacheWriteTokens = getVal(val)
+        }
+      } else {
+        const m = record['@message'].match(/"cacheWriteInputTokenCount"\s*:\s*(\d+)/)
+        if (m) cacheWriteTokens = parseInt(m[1], 10) || 0
+      }
     }
 
     // requestId: from parse or _rid
@@ -170,7 +222,7 @@ function parseQueryResults(
 // CloudWatch Logs Insights occasionally returns duplicate rows for the same
 // invocation (e.g. one row for request metadata + one for response metadata).
 // We deduplicate by requestId, keeping the row with the most token data.
-function deduplicateLogs(logs: BedrockInvocationLog[]): BedrockInvocationLog[] {
+export function deduplicateLogs(logs: BedrockInvocationLog[]): BedrockInvocationLog[] {
   const byId = new Map<string, BedrockInvocationLog>()
 
   for (const log of logs) {

@@ -1,0 +1,12 @@
+diff --git a/src/main/services/cloudwatch-service.ts b/src/main/services/cloudwatch-service.ts
+--- a/src/main/services/cloudwatch-service.ts
++++ b/src/main/services/cloudwatch-service.ts
+@@ -108,3 +108,3 @@
+-function parseQueryResults(
++export function parseQueryResults(
+   results: Array<Array<{ field?: string; value?: string }>>
+ ): BedrockInvocationLog[] {
+@@ -173,3 +173,3 @@
+-function deduplicateLogs(logs: BedrockInvocationLog[]): BedrockInvocationLog[] {
++export function deduplicateLogs(logs: BedrockInvocationLog[]): BedrockInvocationLog[] {
+   const byId = new Map<string, BedrockInvocationLog>()

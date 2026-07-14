@@ -4,7 +4,8 @@ import { resolve } from 'path'
 export default defineConfig({
   test: {
     environment: 'node',
-    globals: true
+    globals: true,
+    include: ['src/**/*.{test,spec}.ts']
   },
   resolve: {
     alias: {
