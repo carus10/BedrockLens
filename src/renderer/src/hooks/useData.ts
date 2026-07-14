@@ -55,7 +55,7 @@ export function useCredits() {
   return useQuery<CreditsStatus | null>({
     queryKey: ['credits'],
     queryFn: () => ipc.invoke('credits:get'),
-    refetchInterval: 300_000
+    refetchInterval: 60_000
   })
 }
 

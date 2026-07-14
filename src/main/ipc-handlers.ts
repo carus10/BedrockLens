@@ -72,19 +72,36 @@ export function setupIpcHandlers(): void {
     const s = settings.getSettings()
     if (!s.credits) return null
 
-    // Compute total Bedrock spend since credits startDate
-    const startDate = new Date(s.credits.startDate)
-    const daysSinceStart = Math.max(1, Math.ceil((Date.now() - startDate.getTime()) / 86400000))
-    const dailyData = await data.getDailyData(Math.min(daysSinceStart, 365))
-    const usedByBedrock = dailyData
-      .filter((d) => new Date(d.date) >= startDate)
-      .reduce((sum, d) => sum + d.estimatedCost, 0)
+    // Compute total Bedrock spend since credits startDate using periods + daily data
+    const startDateStr = s.credits.startDate.slice(0, 10)
+    const startMs = new Date(startDateStr + 'T00:00:00').getTime()
+    const daysSinceStart = Math.max(1, Math.ceil((Date.now() - startMs) / 86400000))
+
+    // Use periods for quick burn rate, and daily data for cumulative spend
+    const periods = await data.getPeriods()
+    const last30 = periods.find((p) => p.period === '30d')
+    const last7 = periods.find((p) => p.period === '7d')
+    const today = periods.find((p) => p.period === 'today')
+
+    let usedByBedrock: number
+    if (daysSinceStart <= 31) {
+      // We have full daily data coverage — sum it
+      const dailyData = await data.getDailyData(daysSinceStart)
+      usedByBedrock = dailyData
+        .filter((d) => d.date >= startDateStr)
+        .reduce((sum, d) => sum + d.estimatedCost, 0)
+    } else {
+      // Beyond CloudWatch cache (31d), use 30d total as approximation
+      usedByBedrock = last30?.total.estimatedCost ?? 0
+    }
+
+    // If usedByBedrock is still 0 but today shows cost, use today at minimum
+    if (usedByBedrock === 0 && today && today.total.estimatedCost > 0) {
+      usedByBedrock = today.total.estimatedCost
+    }
 
     const estimatedRemaining = Math.max(0, s.credits.totalCredits - usedByBedrock)
 
-    // Burn rate: use last 7 days or however many days we have
-    const periods = await data.getPeriods()
-    const last7 = periods.find((p) => p.period === '7d')
     const last7Cost = last7?.total.estimatedCost ?? 0
     const dailyBurnRate = data.getPricingEngine().estimateDailyBurnRate(last7Cost)
 
