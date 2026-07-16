@@ -22,6 +22,7 @@ interface CachedData {
   periodEnd: Date
 }
 
+
 export class DataService {
   private static instance: DataService
   private settings = SettingsService.getInstance()
@@ -75,7 +76,6 @@ export class DataService {
     const logs = await this.cloudWatch.queryInvocations(startTime, endTime)
     this.cache = { logs, lastFetched: new Date(), periodStart: startTime, periodEnd: endTime }
 
-    // Refresh cost explorer in background
     if (s.enableCostExplorer) {
       this.refreshCostExplorer().catch(() => {})
     }

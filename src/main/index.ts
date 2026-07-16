@@ -1,14 +1,11 @@
-import { app, shell, BrowserWindow, ipcMain, Notification } from 'electron'
+import { app, shell, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { setupIpcHandlers } from './ipc-handlers'
 import { DataService } from './services/data-service'
-import { SettingsService } from './services/settings-service'
-import { AlertService } from './services/alert-service'
-import { createTray, updateTray, destroyTray } from './tray'
+import { createTray, destroyTray } from './tray'
 
 let mainWindow: BrowserWindow | null = null
-let refreshTimer: NodeJS.Timeout | null = null
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -39,10 +36,6 @@ function createWindow(): void {
   })
 
   mainWindow.on('close', () => {
-    if (refreshTimer) {
-      clearInterval(refreshTimer)
-      refreshTimer = null
-    }
     destroyTray()
     app.quit()
   })
@@ -59,36 +52,6 @@ function createWindow(): void {
   }
 }
 
-async function startRefreshTimer(): Promise<void> {
-  if (refreshTimer) clearInterval(refreshTimer)
-
-  const settings = SettingsService.getInstance().getSettings()
-  const intervalMs = (settings.refreshIntervalSeconds || 60) * 1000
-
-  refreshTimer = setInterval(async () => {
-    try {
-      await DataService.getInstance().refresh()
-      mainWindow?.webContents.send('data:updated')
-      await updateTray()
-
-
-      const alertService = AlertService.getInstance()
-      const newAlerts = await alertService.checkAlerts()
-      if (newAlerts.length > 0 && Notification.isSupported()) {
-        for (const alert of newAlerts) {
-          new Notification({
-            title: 'BedrockLens — Budget Alert',
-            body: `${alert.type.charAt(0).toUpperCase() + alert.type.slice(1)} budget at ${alert.percentage.toFixed(0)}% ($${alert.currentValue.toFixed(2)})`,
-            icon: join(__dirname, '../../resources/icon.png')
-          }).show()
-        }
-        mainWindow?.webContents.send('alerts:new', newAlerts)
-      }
-    } catch (err) {
-      console.error('[RefreshTimer] Error:', err)
-    }
-  }, intervalMs)
-}
 
 app.whenReady().then(async () => {
   electronApp.setAppUserModelId('com.bedrockLens')
@@ -102,7 +65,6 @@ app.whenReady().then(async () => {
 
   try {
     await DataService.getInstance().initialize()
-    await startRefreshTimer()
     await createTray()
   } catch (err) {
     console.error('[App] Initialization error:', err)
@@ -114,12 +76,9 @@ app.whenReady().then(async () => {
 })
 
 app.on('window-all-closed', () => {
-  if (refreshTimer) clearInterval(refreshTimer)
-  if (process.platform !== 'darwin') app.quit()
+  destroyTray()
+  app.quit()
 })
 
-ipcMain.on('settings:refresh-interval-changed', async () => {
-  await startRefreshTimer()
-})
 
 export { mainWindow }

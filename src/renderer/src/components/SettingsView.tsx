@@ -480,7 +480,6 @@ function CreditsTab({ settings }: { settings: AppSettings }) {
 function GeneralTab({ settings }: { settings: AppSettings }) {
   const queryClient = useQueryClient()
   const [general, setGeneral] = useState({
-    refreshIntervalSeconds: settings.refreshIntervalSeconds,
     sessionGapMinutes: settings.sessionGapMinutes,
     enableCostExplorer: settings.enableCostExplorer,
     logGroupName: settings.logGroupName,
@@ -504,16 +503,6 @@ function GeneralTab({ settings }: { settings: AppSettings }) {
         <span className="panel-title">General Settings</span>
       </div>
       <div className="p-4 space-y-4">
-        <Field label="Refresh Interval (seconds)">
-          <input
-            type="number"
-            value={general.refreshIntervalSeconds}
-            onChange={(e) => setGeneral({ ...general, refreshIntervalSeconds: Number(e.target.value) })}
-            min="10"
-            max="3600"
-            className="input-field"
-          />
-        </Field>
         <Field label="Session Gap (minutes)">
           <input
             type="number"
